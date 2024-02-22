@@ -26,8 +26,9 @@ setup(
     package_dir={"snoopy": "snoopy"},
     extras_require={"dev": ["rich"]},
     entry_points={
-        'console_scripts': [
-            'snoopy=snoopy.__main__:main',
+        "console_scripts": [
+            "snoopy=snoopy.__main__:main",
         ],
     },
+    data_files=[("examples", ["examples/*"])],
 )
