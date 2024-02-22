@@ -9,7 +9,7 @@ def get_version(rel_path):
         return re.search(r'__version__ = "(.*?)"', file.read())[1]
 
 
-with open("README.md") as file:
+with open("README.md", encoding="utf-8") as file:
     long_description = file.read()
 
 
