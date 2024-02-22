@@ -23,12 +23,10 @@ setup(
     url="https://github.com/styfenschaer/Snoopy",
     download_url="https://github.com/styfenschaer/Snoopy",
     packages=find_packages(),
-    package_dir={"snoopy": "snoopy"},
     extras_require={"dev": ["rich"]},
     entry_points={
         "console_scripts": [
             "snoopy=snoopy.__main__:main",
         ],
     },
-    data_files=[("examples", ["examples/*"])],
 )

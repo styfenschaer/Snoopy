@@ -8,7 +8,8 @@ if __name__ == "__main__":
         Path(snoopy.__file__).parent.parent,
         filter_folders=filtering.chain(
             filtering.ignore_pycache,
-            filtering.ExcludeNames("snoopy.egg-info"),
+            filtering.ignore_hidden,
+            filtering.ExcludeNames(["snoopy.egg-info", "build"]),
         ),
     )
 

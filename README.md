@@ -5,26 +5,30 @@ $ pip install git+https://github.com/styfenschaer/Snoopy.git
 ```
 
 # What it looks like
+
 ```
 $ snoopy --example
 
 📁 snoopy
- │ 📁 examples
- │  │ 📄 example.py
- │  │ 📄 snoopy.html
  │ 📁 snoopy
- │  │ 📄 __main__.py
- │  │ 📄 __init__.py
  │  │ 📄 structure.py
- │  │ 📄 _version.py
- │  │ 📄 filtering.py
- │  │ 📄 formatting.py
+ │  │ 📄 __main__.py
  │  │ 📄 sorting.py
- │ 📄 setup.py
+ │  │ 📄 formatting.py
+ │  │ 📄 filtering.py
+ │  │ 📄 __init__.py
+ │  │ 📄 _version.py
+ │ 📁 examples
+ │  │ 📄 snoopy.html
+ │  │ 📄 example.py
+ │ 📄 .gitignore
+ │ 📄 LICENSE
  │ 📄 README.md
+ │ 📄 setup.py
 ```
 
 # How to snoop
+
 ```python
 from pathlib import Path
 
