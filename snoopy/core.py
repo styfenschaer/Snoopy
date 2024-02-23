@@ -221,18 +221,18 @@ class Groomer:
         if isfolder(item):
             return self.groom_folder(item)
         if isfile(item):
-            return self.groom__file(item)
+            return self.groom_file(item)
         if iserror(item):
-            return self.groom__error(item)
+            return self.groom_error(item)
         raise TypeError(f"unexpected item of type {type(item)}")
 
     def groom_folder(self, folder: Folder) -> Folder | None:
         return folder
 
-    def groom__file(self, file: File) -> File | None:
+    def groom_file(self, file: File) -> File | None:
         return file
 
-    def groom__error(self, error: Error) -> Error | None:
+    def groom_error(self, error: Error) -> Error | None:
         return error
 
 
