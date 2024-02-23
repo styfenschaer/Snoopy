@@ -9,7 +9,6 @@ class _Sorting(Groomer):
     attribute: str
     default: Any
     reverse: bool
-    inplace: bool
     wrapper: Callable[[Any], Any] | None = None
 
     def key(self, x: Folder | File | Error):
@@ -19,9 +18,6 @@ class _Sorting(Groomer):
         return val
 
     def groom_folder(self, folder: Folder):
-        if not self.inplace:
-            folder = clone(folder)
-
         folder.items.sort(key=self.key, reverse=self.reverse)
         return folder
 
@@ -37,8 +33,7 @@ def by_last_modified(
         "last_modified",
         default=-1,
         reverse=reverse,
-        inplace=inplace,
-    ).groom(tree)
+    ).groom(tree, inplace=inplace)
     if not inplace:
         return tree
 
@@ -54,8 +49,7 @@ def by_last_access(
         "last_access",
         default=-1,
         reverse=reverse,
-        inplace=inplace,
-    ).groom(tree)
+    ).groom(tree, inplace=inplace)
     if not inplace:
         return tree
 
@@ -71,8 +65,7 @@ def by_created(
         "created",
         default=-1,
         reverse=reverse,
-        inplace=inplace,
-    ).groom(tree)
+    ).groom(tree, inplace=inplace)
     if not inplace:
         return tree
 
@@ -88,8 +81,7 @@ def by_size(
         "bytes",
         default=-1,
         reverse=reverse,
-        inplace=inplace,
-    ).groom(tree)
+    ).groom(tree, inplace=inplace)
     if not inplace:
         return tree
 
@@ -107,9 +99,8 @@ def by_num_files(
         ("files", "deep_files")[deep_files],
         default=[],
         reverse=reverse,
-        inplace=inplace,
         wrapper=len,
-    ).groom(tree)
+    ).groom(tree, inplace=inplace)
     if not inplace:
         return tree
 
@@ -127,9 +118,8 @@ def by_num_folders(
         ("folders", "deep_folders")[deep_folders],
         default=[],
         reverse=reverse,
-        inplace=inplace,
         wrapper=len,
-    ).groom(tree)
+    ).groom(tree, inplace=inplace)
     if not inplace:
         return tree
 
@@ -147,8 +137,7 @@ def by_num_errors(
         ("errors", "deep_errors")[deep_errors],
         default=[],
         reverse=reverse,
-        inplace=inplace,
         wrapper=len,
-    ).groom(tree)
+    ).groom(tree, inplace=inplace)
     if not inplace:
         return tree

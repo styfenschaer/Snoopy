@@ -25,7 +25,7 @@ def ignore_venv(folder: Folder):
 
 @dataclass
 class IgnoreNames:
-    names: File | list[File]
+    names: str | list[str]
 
     def __post_init__(self):
         if isinstance(self.names, str):

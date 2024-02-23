@@ -23,17 +23,11 @@ class _RejectByCompare(Groomer):
     reject_files: bool
     reject_folders: bool
     reject_errors: bool
-    inplace: bool
     hide_only: bool
 
     def __post_init__(self):
         self.get = operator.attrgetter(self.attribute)
         self.cmp = _ops_map[self.operator]
-
-    def groom(self, tree: Folder):
-        if not self.inplace:
-            tree = clone(tree)
-        return super().groom(tree)
 
     def groom_folder(self, folder: Folder) -> Folder | None:
         if not self.reject_folders:
@@ -77,6 +71,5 @@ def by_size(
         reject_files=reject_files,
         reject_folders=reject_folders,
         reject_errors=False,
-        inplace=inplace,
         hide_only=hide_only,
-    ).groom(tree)
+    ).groom(tree, inplace=inplace)

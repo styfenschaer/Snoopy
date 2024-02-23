@@ -226,7 +226,10 @@ def snoop(
 
 @dataclass
 class Groomer:
-    def groom(self, tree: Folder) -> Folder | None:
+    def groom(self, tree: Folder, *, inplace: bool = True) -> Folder | None:
+        if not inplace:
+            tree = clone(tree)
+
         self.depth = 0
 
         tree = self.groom_folder(tree)
