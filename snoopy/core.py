@@ -200,31 +200,13 @@ def snoop(
 @dataclass
 class Groomer:
     def groom(self, tree: Folder) -> Folder | None:
+        self.depth = 0
+
         tree = self.groom_folder(tree)
         if tree is None:
-            return None
+            return
 
-        new_items = []
-        for item in tree.items:
-            item = self._groom__item(item)
-            if item is None:
-                continue
-            if isfolder(item):
-                item = self.groom(item)
-            new_items.append(item)
-
-        tree.items.clear()
-        tree.items.extend(new_items)
-        return tree
-
-    def _groom__item(self, item: Folder | File | Error):
-        if isfolder(item):
-            return self.groom_folder(item)
-        if isfile(item):
-            return self.groom_file(item)
-        if iserror(item):
-            return self.groom_error(item)
-        raise TypeError(f"unexpected item of type {type(item)}")
+        return self._groom(tree)
 
     def groom_folder(self, folder: Folder) -> Folder | None:
         return folder
@@ -234,6 +216,36 @@ class Groomer:
 
     def groom_error(self, error: Error) -> Error | None:
         return error
+
+    def _groom(self, folder: Folder) -> Folder | None:
+        self.depth += 1
+
+        new_items = []
+        for item in folder.items:
+            item = self._groom_item(item)
+
+            if item is None:
+                continue
+
+            if isfolder(item):
+                item = self._groom(item)
+
+            new_items.append(item)
+
+        folder.items.clear()
+        folder.items.extend(new_items)
+
+        self.depth -= 1
+        return folder
+
+    def _groom_item(self, item: Folder | File | Error):
+        if isfolder(item):
+            return self.groom_folder(item)
+        if isfile(item):
+            return self.groom_file(item)
+        if iserror(item):
+            return self.groom_error(item)
+        raise TypeError(f"unexpected item of type {type(item)}")
 
 
 _FOLDER_PREFIX = "📁 "
@@ -271,45 +283,62 @@ class Exhibition:
 
     def __str__(self):
         self.buffer = StringIO()
-        self._format(self.tree, prefix=self.init_prefix, depth=0)
+        if self.max_depth <= 0:
+            return self.buffer.getvalue()
+
+        self.depth = 0
+        self._format(self.tree)
         return self.buffer.getvalue()
 
-    def _format(self, folder: Folder, prefix: int, depth: int):
-        self.depth = depth
+    def _join_append(self, *chunks: str):
+        print("".join(chunks), file=self.buffer)
 
-        pfx = prefix + self.prefix_folder(self, folder)
-        print(pfx + self.format_folder(folder), file=self.buffer)
+    def _format(self, folder: Folder):
+        self._join_append(
+            self.init_prefix + self.depth * self.indent,
+            self.prefix_folder(self, folder),
+            self.format_folder(folder),
+        )
 
-        if depth >= self.max_depth:
+        if self.depth >= self.max_depth:
             return
 
-        prefix += self.indent
+        self.depth += 1
 
-        max_counts = {
+        count_table = {
             Folder: self.max_folders_display,
             File: self.max_files_display,
             Error: self.max_errors_display,
         }
-        counts = {Folder: 0, File: 0, Error: 0}
 
         for item in folder.items:
             item_type = type(item)
 
-            count = counts.get(item_type)
+            count = count_table.get(item_type)
             if count is None:
                 raise TypeError(f"unexpected item of type {type(item)}")
 
-            if count < max_counts[item_type]:
-                counts[item_type] += 1
+            if count_table[item_type] <= 0:
+                continue
 
-                if isfile(item):
-                    pfx = prefix + self.prefix_file(self, item)
-                    print(pfx + self.format_file(item), file=self.buffer)
-                elif iserror(item):
-                    pfx = prefix + self.prefix_error(self, item)
-                    print(pfx + self.format_error(item), file=self.buffer)
-                elif isfolder(item):
-                    self._format(item, prefix=prefix, depth=depth + 1)
+            if isfile(item):
+                self._join_append(
+                    self.init_prefix + self.depth * self.indent,
+                    self.prefix_file(self, item),
+                    self.format_file(item),
+                )
+            elif iserror(item):
+                self._join_append(
+                    self.init_prefix + self.depth * self.indent,
+                    self.prefix_error(self, item),
+                    self.format_error(item),
+                )
+            elif isfolder(item):
+                self._format(item)
+
+            count_table[item_type] -= 1
+
+        self.depth -= 1
 
 
 def visit(obj: Exhibition | str, /, *, style: str | None = None):
@@ -334,15 +363,12 @@ def snapshot(
     if not _rich_installed_:
         raise RuntimeError("failed to save due to missing package 'rich'")
 
-    if not isinstance(obj, str):
-        obj = str(obj)
-
     if style is None:
         style = "medium_purple"
 
     console = Console(record=True, file=StringIO(), style=style)
-    console.print(obj)
+    console.print(str(obj))
     console.save_html(filename, inline_styles=True)
-    
+
     if not silent:
-        print("Woof woof! 🐶✨")
+        print("Woof woof! 🐶✨📸")

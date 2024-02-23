@@ -27,3 +27,4 @@ if __name__ == "__main__":
     snoopy.visit(exh)
 
     snoopy.snapshot(exh, filename=this_path / "snoopy.html", silent=False)
+

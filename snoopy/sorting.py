@@ -11,7 +11,7 @@ class _Sort(abc.ABC, Groomer):
 
     @abc.abstractmethod
     def key(self, x: Folder | File | Error):
-        return x
+        pass
 
     def groom_folder(self, folder: Folder):
         if not self.inplace:

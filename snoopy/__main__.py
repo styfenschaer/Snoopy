@@ -51,6 +51,24 @@ def main():
         help="Supress displaying the output.",
     )
     parser.add_argument(
+        "--max-files-display",
+        type=int,
+        default=float("inf"),
+        help="Maximum number of files to display per folder.",
+    )
+    parser.add_argument(
+        "--max-errors-display",
+        type=int,
+        default=float("inf"),
+        help="Maximum number of errors to display per folder.",
+    )
+    parser.add_argument(
+        "--max-folders-display",
+        type=int,
+        default=float("inf"),
+        help="Maximum number of subfolders to display per folder.",
+    )
+    parser.add_argument(
         "--good-boy!",
         action="store_true",
         help="Snoopy appreciates that!",
@@ -69,6 +87,9 @@ def main():
     exh = Exhibition(
         folder,
         max_depth=args.max_depth,
+        max_files_display=args.max_files_display,
+        max_folders_display=args.max_folders_display,
+        max_errors_display=args.max_errors_display,
     )
 
     if not args.no_display:
