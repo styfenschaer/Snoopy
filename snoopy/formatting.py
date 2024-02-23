@@ -2,18 +2,18 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from .core import Error, File, Folder
-from .units import UnitConverter
+from .units import Converter
 
 
 @dataclass
 class SizeOnly:
-    unit: Literal["TB", "GB", "MB", "KB", "B"] = field(
+    unit: Literal["B", "KB", "MB", "GB", "TB"] = field(
         default="B",
         kw_only=True,
     )
 
     def __post_init__(self):
-        self.convert = UnitConverter("B", self.unit.upper())
+        self.convert = Converter("B", self.unit.upper())
 
     def __call__(self, obj: Folder | File):
         return f"{obj.name}({self.unit}={self.convert(obj.bytes):.2f})"

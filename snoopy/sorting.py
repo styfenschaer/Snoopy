@@ -112,3 +112,43 @@ def by_num_files(
     ).groom(tree)
     if not inplace:
         return tree
+
+
+def by_num_folders(
+    tree: Folder,
+    /,
+    *,
+    reverse: bool = True,
+    inplace: bool = False,
+    deep_folders: bool = True,
+):
+
+    tree = _Sorting(
+        ("folders", "deep_folders")[deep_folders],
+        default=[],
+        reverse=reverse,
+        inplace=inplace,
+        wrapper=len,
+    ).groom(tree)
+    if not inplace:
+        return tree
+
+
+def by_num_errors(
+    tree: Folder,
+    /,
+    *,
+    reverse: bool = True,
+    inplace: bool = False,
+    deep_errors: bool = True,
+):
+
+    tree = _Sorting(
+        ("errors", "deep_errors")[deep_errors],
+        default=[],
+        reverse=reverse,
+        inplace=inplace,
+        wrapper=len,
+    ).groom(tree)
+    if not inplace:
+        return tree

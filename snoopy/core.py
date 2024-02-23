@@ -307,6 +307,7 @@ class Exhibition:
     )
     indent: str = field(default=" │ ", kw_only=True)
     init_prefix: str = field(default="", kw_only=True)
+    display_hidden: bool = field(default=False, kw_only=True)
 
     def __str__(self):
         self.buffer = StringIO()
@@ -339,7 +340,7 @@ class Exhibition:
         }
 
         for item in folder.items:
-            if item.hidden:
+            if item.hidden and (not self.display_hidden):
                 continue
 
             item_type = type(item)

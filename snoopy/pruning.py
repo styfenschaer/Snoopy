@@ -63,7 +63,7 @@ def by_size(
     tree: Folder,
     cmp: Literal["==", "!=", ">", ">=", "<", "<="],
     value: float | int,
-    unit: Literal["TB", "GB", "MB", "KB", "B"],
+    unit: Literal["B", "KB", "MB", "GB", "TB"],
     *,
     reject_files: bool = True,
     reject_folders: bool = True,

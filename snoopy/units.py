@@ -23,9 +23,9 @@ _to_bytes = {
 
 
 @dataclass
-class UnitConverter:
-    from_unit: Literal["TB", "GB", "MB", "KB", "B"]
-    to_unit: Literal["TB", "GB", "MB", "KB", "B"]
+class Converter:
+    from_unit: Literal["B", "KB", "MB", "GB", "TB"]
+    to_unit: Literal["B", "KB", "MB", "GB", "TB"]
 
     def __call__(self, value: int | float):
         bytes = value * _to_bytes[self.from_unit]
@@ -34,7 +34,7 @@ class UnitConverter:
 
 def convert(
     value: float | int,
-    from_unit: Literal["TB", "GB", "MB", "KB", "B"],
-    to_unit: Literal["TB", "GB", "MB", "KB", "B"],
+    from_unit: Literal["B", "KB", "MB", "GB", "TB"],
+    to_unit: Literal["B", "KB", "MB", "GB", "TB"],
 ):
-    return UnitConverter(from_unit, to_unit)(value)
+    return Converter(from_unit, to_unit)(value)
