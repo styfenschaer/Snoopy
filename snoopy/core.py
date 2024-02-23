@@ -53,9 +53,16 @@ class Error(Exception):
     def __init__(self, *args):
         self.args = args
         self.when = datetime.now().replace(microsecond=0)
+        self.hidden = False
 
     def __str__(self):
         return f"Error{self.args} [{self.when}]"
+
+    def hide(self):
+        self.hidden = True
+
+    def unhide(self):
+        self.hidden = False
 
 
 @dataclass
@@ -68,6 +75,7 @@ class File:
         self.created = get_created(self.path)
         self.last_access = get_last_access(self.path)
         self.last_modified = get_last_modified(self.path)
+        self.hidden = False
 
     def __str__(self):
         return (
@@ -77,6 +85,12 @@ class File:
             f"accessed={self.last_access}, "
             f"modified={self.last_modified})"
         )
+
+    def hide(self):
+        self.hidden = True
+
+    def unhide(self):
+        self.hidden = False
 
 
 @dataclass
@@ -117,6 +131,7 @@ class Folder:
         self.created = get_created(self.path)
         self.last_access = get_last_access(self.path)
         self.last_modified = get_last_modified(self.path)
+        self.hidden = False
 
     def __str__(self):
         return (
@@ -129,6 +144,18 @@ class Folder:
             f"modified={self.last_modified}, "
             f"errors=({len(self.errors):,d}/{len(self.deep_errors):,d}))"
         )
+
+    def hide(self, deep: bool = True):
+        self.hidden = True
+        if deep:
+            for item in self.items:
+                item.hide()
+
+    def unhide(self, deep: bool = True):
+        self.hidden = False
+        if deep:
+            for item in self.items:
+                item.unhide()
 
 
 def clone(obj: Folder | File | Error):
@@ -312,6 +339,9 @@ class Exhibition:
         }
 
         for item in folder.items:
+            if item.hidden:
+                continue
+
             item_type = type(item)
 
             count = count_table.get(item_type)

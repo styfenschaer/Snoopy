@@ -1,17 +1,22 @@
-import abc
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Any, Callable
 
 from .core import Error, File, Folder, Groomer, clone
 
 
 @dataclass
-class _Sort(abc.ABC, Groomer):
-    reverse: bool = field(default=True)
-    inplace: bool = field(default=False)
+class _Sorting(Groomer):
+    attribute: str
+    default: Any
+    reverse: bool
+    inplace: bool
+    wrapper: Callable[[Any], Any] | None = None
 
-    @abc.abstractmethod
     def key(self, x: Folder | File | Error):
-        pass
+        val = getattr(x, self.attribute, self.default)
+        if self.wrapper is not None:
+            val = self.wrapper(val)
+        return val
 
     def groom_folder(self, folder: Folder):
         if not self.inplace:
@@ -21,11 +26,6 @@ class _Sort(abc.ABC, Groomer):
         return folder
 
 
-class ByLastModified(_Sort):
-    def key(self, x: Folder | File | Error):
-        return getattr(x, "last_modified", -1)
-
-
 def by_last_modified(
     tree: Folder,
     /,
@@ -33,14 +33,14 @@ def by_last_modified(
     reverse: bool = True,
     inplace: bool = False,
 ):
-    tree = ByLastModified(reverse, inplace).groom(tree)
+    tree = _Sorting(
+        "last_modified",
+        default=-1,
+        reverse=reverse,
+        inplace=inplace,
+    ).groom(tree)
     if not inplace:
         return tree
-
-
-class ByLastAccess(_Sort):
-    def key(self, x: Folder | File | Error):
-        return getattr(x, "last_access", -1)
 
 
 def by_last_access(
@@ -50,14 +50,14 @@ def by_last_access(
     reverse: bool = True,
     inplace: bool = False,
 ):
-    tree = ByLastAccess(reverse, inplace).groom(tree)
+    tree = _Sorting(
+        "last_access",
+        default=-1,
+        reverse=reverse,
+        inplace=inplace,
+    ).groom(tree)
     if not inplace:
         return tree
-
-
-class ByCreated(_Sort):
-    def key(self, x: Folder | File | Error):
-        return getattr(x, "created", -1)
 
 
 def by_created(
@@ -67,14 +67,14 @@ def by_created(
     reverse: bool = True,
     inplace: bool = False,
 ):
-    tree = ByCreated(reverse, inplace).groom(tree)
+    tree = _Sorting(
+        "created",
+        default=-1,
+        reverse=reverse,
+        inplace=inplace,
+    ).groom(tree)
     if not inplace:
         return tree
-
-
-class BySize(_Sort):
-    def key(self, x: Folder | File | Error):
-        return getattr(x, "bytes", -1)
 
 
 def by_size(
@@ -84,23 +84,14 @@ def by_size(
     reverse: bool = True,
     inplace: bool = False,
 ):
-    tree = BySize(reverse, inplace).groom(tree)
+    tree = _Sorting(
+        "bytes",
+        default=-1,
+        reverse=reverse,
+        inplace=inplace,
+    ).groom(tree)
     if not inplace:
         return tree
-
-
-@dataclass
-class ByNumFiles(_Sort):
-    deep_files: bool = field(default=False)
-
-    def key(self, x: Folder | File | Error):
-        try:
-            if self.deep_files:
-                return len(x.deep_files)
-            else:
-                return len(x.files)
-        except AttributeError:
-            return -1
 
 
 def by_num_files(
@@ -111,6 +102,13 @@ def by_num_files(
     inplace: bool = False,
     deep_files: bool = True,
 ):
-    tree = ByNumFiles(reverse, inplace, deep_files).groom(tree)
+
+    tree = _Sorting(
+        ("files", "deep_files")[deep_files],
+        default=[],
+        reverse=reverse,
+        inplace=inplace,
+        wrapper=len,
+    ).groom(tree)
     if not inplace:
         return tree

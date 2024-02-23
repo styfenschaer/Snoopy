@@ -1,30 +1,16 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-from .core import File, Folder
-
-_to_bytes = {
-    "B": 1024**0,
-    "KB": 1024**1,
-    "MB": 1024**2,
-    "GB": 1024**3,
-    "TB": 1024**4,
-}
-
-
-@dataclass
-class UnitConverter:
-    from_unit: Literal["TB", "GB", "MB", "KB", "B"]
-    to_unit: Literal["TB", "GB", "MB", "KB", "B"]
-
-    def __call__(self, value: int | float):
-        bytes = value * _to_bytes[self.from_unit]
-        return bytes / _to_bytes[self.to_unit]
+from .core import Error, File, Folder
+from .units import UnitConverter
 
 
 @dataclass
 class SizeOnly:
-    unit: Literal["TB", "GB", "MB", "KB", "B"] = field(default="B", kw_only=True)
+    unit: Literal["TB", "GB", "MB", "KB", "B"] = field(
+        default="B",
+        kw_only=True,
+    )
 
     def __post_init__(self):
         self.convert = UnitConverter("B", self.unit.upper())
@@ -46,9 +32,9 @@ class NumFilesOnly:
 class NameOnly:
     include_path: bool = field(default=False, kw_only=True)
 
-    def __call__(self, folder: Folder | File):
-        return str((folder.name, folder.path)[self.include_path])
+    def __call__(self, obj: Folder | File):
+        return str((obj.name, obj.path)[self.include_path])
 
 
-def default(obj: Folder | File):
+def default(obj: Folder | File | Error):
     return str(obj)

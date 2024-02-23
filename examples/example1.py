@@ -16,7 +16,7 @@ if __name__ == "__main__":
         ),
     )
 
-    sorting.by_num_files(barky, inplace=True)
+    sorting.by_last_modified(barky, inplace=True)
 
     exh = snoopy.Exhibition(
         barky,
