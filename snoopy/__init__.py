@@ -1,4 +1,3 @@
-from .structure import Error, File, Folder, Format, save_html, tree
-from . import sorting
-from . import filtering
-from . import formatting
+from . import filtering, formatting, sorting
+from .core import (Error, Exhibition, File, Folder, clone, snapshot, snoop,
+                   visit)

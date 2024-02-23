@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-from .structure import File, Folder
+from .core import File, Folder
 
 _to_bytes = {
     "B": 1024**0,

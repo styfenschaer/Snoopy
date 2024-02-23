@@ -1,30 +1,30 @@
-from typing import Callable
 from dataclasses import dataclass
+from typing import Callable
 
-from .structure import Error, File, Folder
+from .core import Error, File, Folder
 
 
 def chain(*filters: Callable[[Folder | File | Error], bool]):
     def chained_filters(item: Folder | File | Error) -> bool:
-        return all(filter(item) for filter in filters)
+        return any(filter(item) for filter in filters)
 
     return chained_filters
 
 
 def ignore_hidden(folder: Folder):
-    return not folder.name.startswith(".")
+    return folder.name.startswith(".")
 
 
 def ignore_pycache(folder: Folder):
-    return folder.name != "__pycache__"
+    return folder.name == "__pycache__"
 
 
 def ignore_venv(folder: Folder):
-    return folder.name != ".venv"
+    return folder.name == ".venv"
 
 
 @dataclass
-class ExcludeNames:
+class IgnoreNames:
     names: File | list[File]
 
     def __post_init__(self):
@@ -32,4 +32,4 @@ class ExcludeNames:
             self.names = [self.names]
 
     def __call__(self, item: Folder | File):
-        return item.name not in self.names
+        return item.name in self.names

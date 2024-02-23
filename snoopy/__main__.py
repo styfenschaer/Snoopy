@@ -1,20 +1,13 @@
 import argparse
 import pathlib
-import subprocess
-import sys
 
-from .structure import Format, save_html, tree
+from .core import Exhibition, snapshot, snoop, visit
 
 this_path = pathlib.Path(__file__).parent
 
 
 def good_boy():
     print("Woof woof! 🐶")
-
-
-def run_example():
-    file = this_path.parent / "examples" / "example.py"
-    subprocess.run([sys.executable, file])
 
 
 def main():
@@ -26,7 +19,7 @@ def main():
         "path",
         type=str,
         nargs="?",
-        default=".",
+        default="",
         help="The path to the directory to analyze.",
     )
     parser.add_argument(
@@ -57,39 +50,31 @@ def main():
         help="Supress displaying the output.",
     )
     parser.add_argument(
-        "--example",
+        "--good-boy!",
         action="store_true",
-        help="Run the snoopy example script.",
-    )
-    parser.add_argument(
-        "--good-boy",
-        action="store_true",
-        help="Run the snoopy example script.",
+        help="Snoopy appreciates that!",
     )
 
     args = parser.parse_args()
 
-    if args.good_boy:
+    if args.__dict__["good_boy!"] or (not args.path):
         return good_boy()
 
-    if args.example:
-        return run_example()
-
-    folder = tree(
+    folder = snoop(
         args.path,
         verbosity=args.verbosity,
     )
 
-    fmt = Format(
+    exh = Exhibition(
         folder,
         max_depth=args.max_depth,
     )
 
     if not args.no_display:
-        fmt.display(rich=args.rich)
+        visit(exh)
 
     if args.filename is not None:
-        save_html(str(fmt), filename=args.filename)
+        snapshot(exh, filename=args.filename)
 
 
 if __name__ == "__main__":
