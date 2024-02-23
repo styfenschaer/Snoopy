@@ -2,6 +2,7 @@ import argparse
 import pathlib
 
 from .core import Exhibition, snapshot, snoop, visit
+from .formatting import NameOnly, SizeOnly, default
 
 this_path = pathlib.Path(__file__).parent
 
@@ -35,12 +36,6 @@ def main():
         help="Display the tree using rich formatting.",
     )
     parser.add_argument(
-        "--max-depth",
-        type=int,
-        default=float("inf"),
-        help="Display the directory tree only up to the specified depth.",
-    )
-    parser.add_argument(
         "--filename",
         type=str,
         help="Save the tree under the given filename in html format.",
@@ -49,6 +44,12 @@ def main():
         "--no-display",
         action="store_true",
         help="Supress displaying the output.",
+    )
+    parser.add_argument(
+        "--max-depth",
+        type=int,
+        default=float("inf"),
+        help="Display the directory tree only up to the specified depth.",
     )
     parser.add_argument(
         "--max-files-display",
@@ -69,6 +70,16 @@ def main():
         help="Maximum number of subfolders to display per folder.",
     )
     parser.add_argument(
+        "--name-only",
+        action="store_true",
+        help="Only display the object name.",
+    )
+    parser.add_argument(
+        "--size-only",
+        action="store_true",
+        help="Only display the object name with its size.",
+    )
+    parser.add_argument(
         "--good-boy!",
         action="store_true",
         help="Snoopy appreciates that!",
@@ -84,12 +95,22 @@ def main():
         verbosity=args.verbosity,
     )
 
+    if args.name_only:
+        formatter = NameOnly()
+    elif args.size_only:
+        formatter = SizeOnly()
+    else:
+        formatter = default
+
     exh = Exhibition(
         folder,
         max_depth=args.max_depth,
-        max_files_display=args.max_files_display,
         max_folders_display=args.max_folders_display,
+        max_files_display=args.max_files_display,
         max_errors_display=args.max_errors_display,
+        format_folder=formatter,
+        format_file=formatter,
+        format_error=formatter,
     )
 
     if not args.no_display:

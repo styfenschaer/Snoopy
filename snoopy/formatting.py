@@ -29,8 +29,8 @@ class SizeOnly:
     def __post_init__(self):
         self.convert = UnitConverter("B", self.unit.upper())
 
-    def __call__(self, folder: Folder | File):
-        return f"{folder.name}({self.unit}={self.convert(folder.bytes):.2f})"
+    def __call__(self, obj: Folder | File):
+        return f"{obj.name}({self.unit}={self.convert(obj.bytes):.2f})"
 
 
 @dataclass
@@ -48,3 +48,7 @@ class NameOnly:
 
     def __call__(self, folder: Folder | File):
         return str((folder.name, folder.path)[self.include_path])
+
+
+def default(obj: Folder | File):
+    return str(obj)
