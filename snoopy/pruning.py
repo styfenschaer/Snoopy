@@ -33,41 +33,30 @@ class _RejectByCompare(Groomer):
     def groom(self, tree: Folder):
         if not self.inplace:
             tree = clone(tree)
-
         return super().groom(tree)
 
     def groom_folder(self, folder: Folder) -> Folder | None:
         if not self.reject_folders:
             return folder
-
-        if not self.cmp(self.get(folder), self.threshold):
-            return folder
-
-        if self.hide_only:
-            folder.hide(deep=True)
-            return folder
+        return self._process(folder)
 
     def groom_file(self, file: File) -> Folder | None:
         if not self.reject_files:
             return file
-
-        if not self.cmp(self.get(file), self.threshold):
-            return file
-
-        if self.hide_only:
-            file.hide()
-            return file
+        return self._process(file)
 
     def groom_error(self, error: Error) -> Folder | None:
         if not self.reject_errors:
             return error
+        return self._process(error)
 
-        if not self.cmp(self.get(error), self.threshold):
-            return error
+    def _process(self, item: Folder | File | Error):
+        if not self.cmp(self.get(item), self.threshold):
+            return item
 
         if self.hide_only:
-            error.hide()
-            return error
+            item.hide()
+            return item
 
 
 def by_size(
