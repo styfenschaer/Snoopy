@@ -37,6 +37,7 @@ def main():
     parser.add_argument(
         "--max-depth",
         type=int,
+        default=float("inf"),
         help="Display the directory tree only up to the specified depth.",
     )
     parser.add_argument(
