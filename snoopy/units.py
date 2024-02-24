@@ -1,17 +1,12 @@
 from dataclasses import dataclass
 from typing import Literal
 
-B = "B"
-KB = "KB"
-MB = "MB"
-GB = "GB"
-TB = "TB"
 
-BYTE = "B"
-KILO_BYTE = "KB"
-MEGA_BYTE = "MB"
-GIGA_BYTE = "GB"
-TERA_BYTE = "TB"
+BYTE = B = "B"
+KILO_BYTE = KB = "KB"
+MEGA_BYTE = MB = "MB"
+GIGA_BYTE = GB = "GB"
+TERA_BYTE = TB = "TB"
 
 _to_bytes = {
     BYTE: 1024**0,

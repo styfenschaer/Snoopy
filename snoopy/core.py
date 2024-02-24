@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import copy
 import os
+import sys
+import time
 import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -162,6 +164,104 @@ def clone(obj: Folder | File | Error):
     return copy.deepcopy(obj)
 
 
+_progress_start = "\033[2F"  # 2 lines up
+_progress_template = (
+    "\033[2B"  # 2 lines down
+    "\n"
+    "\033[34m"  # blue
+    "Elapsed [sec]: {:.1f} | "
+    "\033[32m"  # green
+    "Folders {:,d} | "
+    "Files {:,d} | "
+    "\033[31m"  # red
+    "Errors {:,d}"
+    "\033[F"  # 1 line up
+    "\033[K"  # clear line
+    "\033[0m"  # default color
+    r"{}"
+)
+_progress_end = "\033[B\n"  # 1 line down, new line
+_stdout_write = sys.stdout.write
+
+
+@dataclass
+class Snoopy:
+    ignore_folder: Callable[[Folder], bool] = (lambda folder: False,)
+    ignore_file: Callable[[File], bool] = (lambda file: False,)
+    ignore_error: Callable[[Error], bool] = (lambda error: False,)
+    raise_on_error: bool = (True,)
+    verbosity: Literal[0, 1, 2] = 0
+
+    def snoop(self, path: Path | str):
+        self.folder_count = 0
+        self.file_count = 0
+        self.error_count = 0
+
+        self.tic = time.time()
+
+        if self.verbosity >= 1:
+            _stdout_write(_progress_start)
+
+        if not isinstance(path, Path):
+            path = Path(path)
+
+        tree = self._snoop(path, Folder(path))
+
+        if self.verbosity >= 1:
+            _stdout_write(_progress_end)
+
+        return tree
+
+    def _display(self, item: Error | File | Folder, verbosity: int):
+        if self.verbosity >= verbosity:
+            msg = _progress_template.format(
+                time.time() - self.tic,
+                self.folder_count,
+                self.file_count,
+                self.error_count,
+                item.path,
+            )
+            _stdout_write(msg)
+
+    def _snoop(self, path: Path | str, folder: Folder):
+        if not (path.exists() and path.is_dir()):
+            raise ValueError("path must be an existing directory")
+
+        self.folder_count += 1
+
+        try:
+            for item in (path / item for item in path.iterdir()):
+                if item.is_dir():
+                    subfolder = Folder(item)
+                    if not self.ignore_folder(subfolder):
+                        folder.items.append(subfolder)
+                        self._snoop(item, subfolder)
+
+                elif item.is_file():
+                    self.file_count += 1
+
+                    file = File(item)
+                    self._display(file, verbosity=2)
+
+                    if not self.ignore_file(file):
+                        folder.items.append(file)
+
+        except Exception as exc:
+            self.error_count += 1
+
+            if self.raise_on_error:
+                raise exc
+
+            error = Error(exc)
+            self._display(error, verbosity=1)
+
+            if not self.ignore_error(error):
+                folder.items.append(error)
+
+        self._display(folder, verbosity=1)
+        return folder
+
+
 def snoop(
     path: Path | str,
     /,
@@ -171,57 +271,14 @@ def snoop(
     ignore_error: Callable[[Error], bool] = lambda error: False,
     raise_on_error: bool = True,
     verbosity: Literal[0, 1, 2] = 0,
-    _folder: Folder | None = None,
 ):
-    if not isinstance(path, Path):
-        path = Path(path)
-
-    if not (path.exists() and path.is_dir()):
-        raise ValueError("path must be an existing directory")
-
-    if _folder is None:
-        folder = Folder(path)
-    else:
-        folder = _folder
-
-    try:
-        for item in (path / item for item in os.listdir(path)):
-            if item.is_dir():
-                subfolder = Folder(item)
-                if not ignore_folder(subfolder):
-                    folder.items.append(subfolder)
-                    snoop(
-                        item,
-                        ignore_folder=ignore_folder,
-                        ignore_file=ignore_file,
-                        verbosity=verbosity,
-                        _folder=subfolder,
-                    )
-            elif item.is_file():
-                file = File(item)
-
-                if verbosity >= 2:
-                    print(file)
-
-                if not ignore_file(file):
-                    folder.items.append(file)
-
-    except Exception as exc:
-        if raise_on_error:
-            raise exc
-
-        error = Error(exc)
-
-        if verbosity >= 1:
-            print(error)
-
-        if not ignore_error(error):
-            folder.items.append(error)
-
-    if verbosity >= 1:
-        print(folder)
-
-    return folder
+    return Snoopy(
+        ignore_folder=ignore_folder,
+        ignore_file=ignore_file,
+        ignore_error=ignore_error,
+        raise_on_error=raise_on_error,
+        verbosity=verbosity,
+    ).snoop(path)
 
 
 @dataclass
@@ -290,6 +347,7 @@ class Exhibition:
     max_files_display: int = field(default=float("inf"), kw_only=True)
     max_folders_display: int = field(default=float("inf"), kw_only=True)
     max_errors_display: int = field(default=float("inf"), kw_only=True)
+    max_items_display: int = field(default=float("inf"), kw_only=True)
     format_file: Callable[[File], str] = field(
         default=lambda file: str(file), kw_only=True
     )
@@ -342,7 +400,10 @@ class Exhibition:
             Error: self.max_errors_display,
         }
 
-        for item in folder.items:
+        for item_count, item in enumerate(folder.items):
+            if item_count >= self.max_items_display:
+                break
+
             if item.hidden and (not self.display_hidden):
                 continue
 

@@ -33,3 +33,24 @@ class IgnoreNames:
 
     def __call__(self, item: Folder | File):
         return item.name in self.names
+
+
+@dataclass
+class IgnoreSuffix:
+    suffix: str | list[str]
+
+    def __post_init__(self):
+        if isinstance(self.suffix, str):
+            self.suffix = [self.suffix]
+
+    def __call__(self, item: File | Folder):
+        return item.path.suffix in self.suffix
+
+
+# fmt: off
+def ignore_pdf(file: File): return file.path.suffix == ".pdf"
+def ignore_txt(file: File): return file.path.suffix == ".txt"
+def ignore_py(file: File): return file.path.suffix == ".py"
+def ignore_md(file: File): return file.path.suffix == ".md"
+def ignore_tex(file: File): return file.path.suffix == ".tex"
+# fmt:on

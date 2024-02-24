@@ -7,10 +7,7 @@ from .units import Converter
 
 @dataclass
 class SizeOnly:
-    unit: Literal["B", "KB", "MB", "GB", "TB"] = field(
-        default="B",
-        kw_only=True,
-    )
+    unit: Literal["B", "KB", "MB", "GB", "TB"] = field(default="B")
 
     def __post_init__(self):
         self.convert = Converter("B", self.unit.upper())
