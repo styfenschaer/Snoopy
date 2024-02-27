@@ -11,6 +11,8 @@ from io import StringIO
 from pathlib import Path
 from typing import Callable, Literal
 
+from .terminal import Colors, Commands
+
 try:
     from rich.console import Console
 
@@ -164,73 +166,89 @@ def clone(obj: Folder | File | Error):
     return copy.deepcopy(obj)
 
 
-_progress_start = "\033[2F"  # 2 lines up
-_progress_template = (
-    "\033[2B"  # 2 lines down
-    "\n"
-    "\033[34m"  # blue
-    "Elapsed [sec]: {:.1f} | "
-    "\033[32m"  # green
-    "Folders {:,d} | "
-    "Files {:,d} | "
-    "\033[31m"  # red
-    "Errors {:,d}"
-    "\033[F"  # 1 line up
-    "\033[K"  # clear line
-    "\033[0m"  # default color
-    r"{}"
-)
-_progress_end = "\033[B\n"  # 1 line down, new line
-_stdout_write = sys.stdout.write
+# fmt: off
+_PROG_BEGIN = Commands.MOVE_UP * 2
+_PROG_ITER = "".join((
+    Commands.MOVE_DOWN * 2,
+    "\n",
+    Colors.BLUE,
+    "Elapsed [sec]: {:.1f} | ",
+    Colors.GREEN,
+    "Folders: {:,d} | ",
+    "Files: {:,d} | ",
+    Colors.RED,
+    "Errors: {:,d}",
+    Colors.DEFAULT,
+    Commands.MOVE_UP,
+    Commands.CLEAR_LINE,
+    Colors.DEFAULT,
+    r"{}",
+))
+_PROG_END = "".join((
+    Commands.MOVE_DOWN,
+    "\n",
+))
+# fmt: on
 
 
 @dataclass
-class Snoopy:
-    ignore_folder: Callable[[Folder], bool] = (lambda folder: False,)
-    ignore_file: Callable[[File], bool] = (lambda file: False,)
-    ignore_error: Callable[[Error], bool] = (lambda error: False,)
-    raise_on_error: bool = (True,)
-    verbosity: Literal[0, 1, 2] = 0
+class Dog:
+    name: str = field(default="Snoopy")
+    ignore_folder: Callable[[Folder], bool] = field(
+        default=lambda folder: False, kw_only=True
+    )
+    ignore_file: Callable[[File], bool] = field(
+        default=lambda file: False, kw_only=True
+    )
+    ignore_error: Callable[[Error], bool] = field(
+        default=lambda error: False, kw_only=True
+    )
+    raise_on_error: bool = field(default=True, kw_only=True)
+    verbosity: Literal[0, 1, 2] = field(default=0, kw_only=True)
 
-    def snoop(self, path: Path | str):
+    def bark(self):
+        print("Woof woof! 🐶")
+
+    def snoop(self, path: Path | str | None = None):
+        if path is None:
+            path = Path(os.getcwd())
+        elif not isinstance(path, Path):
+            path = Path(path)
+
         self.folder_count = 0
         self.file_count = 0
         self.error_count = 0
 
-        self.tic = time.time()
-
         if self.verbosity >= 1:
-            _stdout_write(_progress_start)
+            sys.stdout.write(_PROG_BEGIN)
 
-        if not isinstance(path, Path):
-            path = Path(path)
+        self.tic = time.time()
 
         tree = self._snoop(path, Folder(path))
 
         if self.verbosity >= 1:
-            _stdout_write(_progress_end)
+            sys.stdout.write(_PROG_END)
 
         return tree
 
-    def _display(self, item: Error | File | Folder, verbosity: int):
-        if self.verbosity >= verbosity:
-            msg = _progress_template.format(
-                time.time() - self.tic,
-                self.folder_count,
-                self.file_count,
-                self.error_count,
-                item.path,
-            )
-            _stdout_write(msg)
+    def _display(self, item: Error | File | Folder):
+        msg = _PROG_ITER.format(
+            time.time() - self.tic,
+            self.folder_count,
+            self.file_count,
+            self.error_count,
+            item,
+        )
+        sys.stdout.write(msg)
 
-    def _snoop(self, path: Path | str, folder: Folder):
+    def _snoop(self, path: Path, folder: Folder):
         if not (path.exists() and path.is_dir()):
             raise ValueError("path must be an existing directory")
 
         self.folder_count += 1
 
         try:
-            for item in (path / item for item in path.iterdir()):
+            for item in path.iterdir():
                 if item.is_dir():
                     subfolder = Folder(item)
                     if not self.ignore_folder(subfolder):
@@ -241,7 +259,8 @@ class Snoopy:
                     self.file_count += 1
 
                     file = File(item)
-                    self._display(file, verbosity=2)
+                    if self.verbosity >= 2:
+                        self._display(file.path)
 
                     if not self.ignore_file(file):
                         folder.items.append(file)
@@ -253,18 +272,20 @@ class Snoopy:
                 raise exc
 
             error = Error(exc)
-            self._display(error, verbosity=1)
+            if self.verbosity >= 1:
+                self._display(error)
 
             if not self.ignore_error(error):
                 folder.items.append(error)
 
-        self._display(folder, verbosity=1)
+        if self.verbosity >= 1:
+            self._display(folder.path)
+
         return folder
 
 
 def snoop(
-    path: Path | str,
-    /,
+    path: Path | str | None = None,
     *,
     ignore_folder: Callable[[Folder], bool] = lambda folder: False,
     ignore_file: Callable[[File], bool] = lambda file: False,
@@ -272,7 +293,7 @@ def snoop(
     raise_on_error: bool = True,
     verbosity: Literal[0, 1, 2] = 0,
 ):
-    return Snoopy(
+    return Dog(
         ignore_folder=ignore_folder,
         ignore_file=ignore_file,
         ignore_error=ignore_error,
@@ -282,40 +303,49 @@ def snoop(
 
 
 @dataclass
-class Groomer:
-    def groom(self, tree: Folder, *, inplace: bool = True) -> Folder | None:
+class Transformer:
+    def __call__(self, tree: Folder, *, inplace: bool = True):
         if not inplace:
             tree = clone(tree)
 
         self.depth = 0
 
-        tree = self.groom_folder(tree)
+        tree = self.visit_folder(tree)
         if tree is None:
             return
 
-        return self._groom(tree)
+        return self._visit(tree)
 
-    def groom_folder(self, folder: Folder) -> Folder | None:
+    def visit_folder(self, folder: Folder) -> Folder | None:
         return folder
 
-    def groom_file(self, file: File) -> File | None:
+    def visit_file(self, file: File) -> File | None:
         return file
 
-    def groom_error(self, error: Error) -> Error | None:
+    def visit_error(self, error: Error) -> Error | None:
         return error
 
-    def _groom(self, folder: Folder) -> Folder | None:
+    def visit_item(self, item: Folder | File | Error):
+        if isfolder(item):
+            return self.visit_folder(item)
+        if isfile(item):
+            return self.visit_file(item)
+        if iserror(item):
+            return self.visit_error(item)
+        raise TypeError(f"unexpected item of type {type(item)}")
+
+    def _visit(self, folder: Folder) -> Folder | None:
         self.depth += 1
 
         new_items = []
         for item in folder.items:
-            item = self._groom_item(item)
+            item = self.visit_item(item)
 
             if item is None:
                 continue
 
             if isfolder(item):
-                item = self._groom(item)
+                item = self._visit(item)
 
             new_items.append(item)
 
@@ -325,23 +355,25 @@ class Groomer:
         self.depth -= 1
         return folder
 
-    def _groom_item(self, item: Folder | File | Error):
+
+def traverse(tree: Folder, reverse: bool = False):
+    for item in tree.items:
+        if not reverse:
+            yield item
         if isfolder(item):
-            return self.groom_folder(item)
-        if isfile(item):
-            return self.groom_file(item)
-        if iserror(item):
-            return self.groom_error(item)
-        raise TypeError(f"unexpected item of type {type(item)}")
+            yield from traverse(item, reverse=reverse)
+        if reverse:
+            yield item
 
 
 _FOLDER_PREFIX = "📁 "
 _FILE_PREFIX = "📄 "
 _ERROR_PREFIX = "🤬 "
+_REM_ITEMS_TMPL = "✂️  [Folders: {:,d} | Files: {:,d} | Errors: {:,d}]"
 
 
 @dataclass
-class Exhibition:
+class Formatter:
     tree: Folder
     max_depth: int = field(default=float("inf"), kw_only=True)
     max_files_display: int = field(default=float("inf"), kw_only=True)
@@ -357,18 +389,23 @@ class Exhibition:
     format_error: Callable[[Error], str] = field(
         default=lambda error: str(error), kw_only=True
     )
-    prefix_file: Callable[[Exhibition, File], str] = field(
-        default=lambda exh, file: _FILE_PREFIX, kw_only=True
+    prefix_file: Callable[[Formatter, File], str] = field(
+        default=lambda fmt, file: _FILE_PREFIX, kw_only=True
     )
-    prefix_folder: Callable[[Exhibition, Folder], str] = field(
-        default=lambda exh, folder: _FOLDER_PREFIX, kw_only=True
+    prefix_folder: Callable[[Formatter, Folder], str] = field(
+        default=lambda fmt, folder: _FOLDER_PREFIX, kw_only=True
     )
-    prefix_error: Callable[[Exhibition, Error], str] = field(
-        default=lambda exh, error: _ERROR_PREFIX, kw_only=True
+    prefix_error: Callable[[Formatter, Error], str] = field(
+        default=lambda fmt, error: _ERROR_PREFIX, kw_only=True
     )
     indent: str = field(default=" │ ", kw_only=True)
     init_prefix: str = field(default="", kw_only=True)
     display_hidden: bool = field(default=False, kw_only=True)
+    format_remaining: Callable[[tuple[int, int, int]], str] = field(
+        default=lambda n0, n1, n2: _REM_ITEMS_TMPL.format(n0, n1, n2),
+        kw_only=True,
+    )
+    display_remaining: bool = field(default=True, kw_only=True)
 
     def __str__(self):
         self.buffer = StringIO()
@@ -394,27 +431,28 @@ class Exhibition:
 
         self.depth += 1
 
-        count_table = {
+        max_count_table = {
             Folder: self.max_folders_display,
             File: self.max_files_display,
             Error: self.max_errors_display,
         }
+        count_table = {Folder: 0, File: 0, Error: 0}
 
         for item_count, item in enumerate(folder.items):
+            item_type = type(item)
+            if item_type not in max_count_table:
+                raise TypeError(f"unexpected item of type {type(item)}")
+
+            if count_table[item_type] >= max_count_table[item_type]:
+                continue
+
             if item_count >= self.max_items_display:
                 break
 
             if item.hidden and (not self.display_hidden):
                 continue
 
-            item_type = type(item)
-
-            count = count_table.get(item_type)
-            if count is None:
-                raise TypeError(f"unexpected item of type {type(item)}")
-
-            if count_table[item_type] <= 0:
-                continue
+            count_table[item_type] += 1
 
             if isfile(item):
                 self._join_append(
@@ -431,12 +469,27 @@ class Exhibition:
             elif isfolder(item):
                 self._format(item)
 
-            count_table[item_type] -= 1
+        if self.display_remaining:
+            remaining = [
+                len(folder.folders) - count_table[Folder],
+                len(folder.files) - count_table[File],
+                len(folder.errors) - count_table[Error],
+            ]
+            if not self.display_hidden:
+                remaining[0] -= sum(1 for i in folder.folders if i.hidden)
+                remaining[1] -= sum(1 for i in folder.files if i.hidden)
+                remaining[2] -= sum(1 for i in folder.errors if i.hidden)
+
+            if any(rem > 0 for rem in remaining):
+                self._join_append(
+                    self.init_prefix + self.depth * self.indent,
+                    self.format_remaining(*remaining),
+                )
 
         self.depth -= 1
 
 
-def visit(obj: Exhibition | str, /, *, style: str | None = None):
+def display(obj: Formatter | str, *, style: str | None = None):
     if not _rich_installed_:
         warnings.warn("missing package 'rich'; displaying normally")
         return print(obj)
@@ -447,13 +500,11 @@ def visit(obj: Exhibition | str, /, *, style: str | None = None):
     Console(style=style).print(str(obj))
 
 
-def snapshot(
-    obj: str | Exhibition,
-    /,
-    *,
+def save_html(
+    obj: str | Formatter,
     filename: str | Path,
+    *,
     style: str | None = None,
-    silent: bool = True,
 ):
     if not _rich_installed_:
         raise RuntimeError("failed to save due to missing package 'rich'")
@@ -464,6 +515,27 @@ def snapshot(
     console = Console(record=True, file=StringIO(), style=style)
     console.print(str(obj))
     console.save_html(filename, inline_styles=True)
+
+
+def save_txt(obj: str | Formatter, filename: str | Path):
+    with open(filename, mode="w", encoding="utf-8") as file:
+        file.write(str(obj))
+
+
+def snapshot(
+    obj: str | Formatter,
+    filename: str | Path,
+    *,
+    style: str | None = None,
+    silent: bool = True,
+):
+    if not isinstance(filename, Path):
+        filename = Path(filename)
+
+    if filename.suffix == ".html":
+        save_html(obj, filename, style=style)
+    else:
+        save_txt(obj, filename)
 
     if not silent:
         print("Woof woof! 🐶✨📸")

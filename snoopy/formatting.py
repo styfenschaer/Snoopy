@@ -1,12 +1,11 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-from .core import Error, File, Folder
+from .core import Error, File, Folder, clone
 from .units import Converter
 
 
-@dataclass
-class SizeOnly:
+class ItemSize:
     unit: Literal["B", "KB", "MB", "GB", "TB"] = field(default="B")
 
     def __post_init__(self):
@@ -17,16 +16,7 @@ class SizeOnly:
 
 
 @dataclass
-class NumFilesOnly:
-    deep: bool = field(default=False, kw_only=True)
-
-    def __call__(self, folder: Folder):
-        files = (folder.files, folder.deep_files)[self.deep]
-        return f"{folder.name}(files={len(files):,d})"
-
-
-@dataclass
-class NameOnly:
+class ItemName:
     include_path: bool = field(default=False, kw_only=True)
 
     def __call__(self, obj: Folder | File):
@@ -35,3 +25,9 @@ class NameOnly:
 
 def default(obj: Folder | File | Error):
     return str(obj)
+
+
+def anonymize(obj: Folder | File):
+    obj = clone(obj)
+    obj.path = hash(obj.path)
+    return default(obj)

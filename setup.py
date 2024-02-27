@@ -16,7 +16,7 @@ with open("README.md", encoding="utf-8") as file:
 setup(
     name="snoopy",
     version=get_version("snoopy/_version.py"),
-    description="Snooping on your directories",
+    description="Snoopy - Your loyal directory snooper!",
     long_description=long_description,
     author="Styfen Schär",
     author_email="styfen.schaer.blog@gmail.com",

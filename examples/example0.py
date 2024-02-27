@@ -1,8 +1,8 @@
 import snoopy
 
 if __name__ == "__main__":
-    barky = snoopy.snoop(".")
+    tree = snoopy.snoop()
 
-    exh = snoopy.Exhibition(barky)
+    fmt = snoopy.Formatter(tree)
 
-    print(exh)
+    print(fmt)

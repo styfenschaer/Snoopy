@@ -1,3 +1,5 @@
-from . import filtering, formatting, pruning, sorting
-from .core import (Error, Exhibition, File, Folder, clone, snapshot, snoop,
-                   visit)
+from . import filtering, formatting, progress, pruning, sorting
+from ._version import __version__
+from .core import (Dog, Error, File, Folder, Formatter, clone, display,
+                   snapshot, snoop, traverse)
+from .gimmick import praise
